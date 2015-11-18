@@ -68,6 +68,32 @@ final class RequestBuilder {
     }
   }
 
+  /**
+   * 增加Request.Builder动态传入
+   */
+  RequestBuilder(String method, HttpUrl baseUrl, String relativeUrl, Headers headers,
+                 MediaType contentType, boolean hasBody, boolean isFormEncoded, boolean isMultipart, Request.Builder reqBuilder) {
+    this.method = method;
+    this.baseUrl = baseUrl;
+    this.relativeUrl = relativeUrl;
+    this.requestBuilder = reqBuilder;
+    this.contentType = contentType;
+    this.hasBody = hasBody;
+
+    if (headers != null) {
+      requestBuilder.headers(headers);
+    }
+
+    if (isFormEncoded) {
+      // Will be set to 'body' in 'build'.
+      formEncodingBuilder = new FormEncodingBuilder();
+    } else if (isMultipart) {
+      // Will be set to 'body' in 'build'.
+      multipartBuilder = new MultipartBuilder();
+      multipartBuilder.type(MultipartBuilder.FORM);
+    }
+  }
+
   void setRelativeUrl(String relativeUrl) {
     this.relativeUrl = relativeUrl;
   }
@@ -225,5 +251,9 @@ final class RequestBuilder {
     @Override public void writeTo(BufferedSink sink) throws IOException {
       delegate.writeTo(sink);
     }
+  }
+
+  public Request.Builder getRequestBuilder() {
+    return requestBuilder;
   }
 }

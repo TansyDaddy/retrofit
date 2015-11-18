@@ -101,6 +101,71 @@ final class OkHttpCall<T> implements Call<T> {
     });
   }
 
+  @Override
+  public void enqueue(Callback<T> callback, String dynamicBaseUrl) {
+    enqueue(callback,dynamicBaseUrl, RequestFactory.CachePloy.FORCE_NETWORK);
+  }
+
+  @Override
+  public void enqueue(Callback<T> callback, RequestFactory.CachePloy cachePloy) {
+    enqueue(callback,null, cachePloy);
+  }
+
+  @Override
+  public void enqueue(final Callback<T> callBack, String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) {
+    synchronized (this) {
+      if (executed) throw new IllegalStateException("Already executed");
+      executed = true;
+    }
+
+    com.squareup.okhttp.Call rawCall;
+    try {
+      rawCall = createRawCall(dynamicBaseUrl,cachePloy);
+    } catch (Throwable t) {
+      callBack.onFailure(t);
+      return;
+    }
+    if (canceled) {
+      rawCall.cancel();
+    }
+    this.rawCall = rawCall;
+
+    rawCall.enqueue(new com.squareup.okhttp.Callback() {
+      private void callFailure(Throwable e) {
+        try {
+          callBack.onFailure(e);
+        } catch (Throwable t) {
+          t.printStackTrace();
+        }
+      }
+
+      private void callSuccess(Response<T> response) {
+        try {
+          callBack.onResponse(response, retrofit);
+        } catch (Throwable t) {
+          t.printStackTrace();
+        }
+      }
+
+      @Override
+      public void onFailure(Request request, IOException e) {
+        callFailure(e);
+      }
+
+      @Override
+      public void onResponse(com.squareup.okhttp.Response rawResponse) {
+        Response<T> response;
+        try {
+          response = parseResponse(rawResponse);
+        } catch (Throwable e) {
+          callFailure(e);
+          return;
+        }
+        callSuccess(response);
+      }
+    });
+  }
+
   public Response<T> execute() throws IOException {
     synchronized (this) {
       if (executed) throw new IllegalStateException("Already executed");
@@ -116,8 +181,39 @@ final class OkHttpCall<T> implements Call<T> {
     return parseResponse(rawCall.execute());
   }
 
+  @Override
+  public Response<T> execute(String dynamicBaseUrl) throws IOException {
+    return execute(dynamicBaseUrl, RequestFactory.CachePloy.FORCE_NETWORK);
+  }
+
+  @Override
+  public Response<T> execute(RequestFactory.CachePloy cachePloy) throws IOException {
+    return execute(null, cachePloy);
+  }
+
+
+  @Override
+  public Response<T> execute(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) throws IOException {
+    synchronized (this) {
+      if (executed) throw new IllegalStateException("Already executed");
+      executed = true;
+    }
+
+    com.squareup.okhttp.Call rawCall = createRawCall(dynamicBaseUrl,cachePloy);
+    if (canceled) {
+      rawCall.cancel();
+    }
+    this.rawCall = rawCall;
+
+    return parseResponse(rawCall.execute());
+  }
+
   private com.squareup.okhttp.Call createRawCall() {
     return retrofit.client().newCall(requestFactory.create(args));
+  }
+
+  private com.squareup.okhttp.Call createRawCall(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) {
+    return retrofit.client().newCall(requestFactory.create(dynamicBaseUrl, cachePloy, args));
   }
 
   private Response<T> parseResponse(com.squareup.okhttp.Response rawResponse) throws IOException {
@@ -236,4 +332,5 @@ final class OkHttpCall<T> implements Call<T> {
       }
     }
   }
+
 }

@@ -53,12 +53,44 @@ final class ExecutorCallAdapterFactory implements CallAdapter.Factory {
       this.delegate = delegate;
     }
 
-    @Override public void enqueue(Callback<T> callback) {
+    @Override
+    public void enqueue(Callback<T> callback) {
       delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback));
     }
 
-    @Override public Response<T> execute() throws IOException {
+    @Override
+    public void enqueue(Callback<T> callback, String dynamicBaseUrl) {
+      delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), dynamicBaseUrl);
+    }
+
+    @Override
+    public void enqueue(Callback<T> callback, RequestFactory.CachePloy cachePloy) {
+      delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), cachePloy);
+    }
+
+    @Override
+    public void enqueue(Callback<T> callback, String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) {
+      delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), dynamicBaseUrl, cachePloy);
+    }
+
+    @Override
+    public Response<T> execute() throws IOException {
       return delegate.execute();
+    }
+
+    @Override
+    public Response<T> execute(String dynamicBaseUrl) throws IOException {
+      return delegate.execute(dynamicBaseUrl);
+    }
+
+    @Override
+    public Response<T> execute(RequestFactory.CachePloy cachePloy) throws IOException {
+      return delegate.execute(cachePloy);
+    }
+
+    @Override
+    public Response<T> execute(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) throws IOException {
+      return delegate.execute(dynamicBaseUrl, cachePloy);
     }
 
     @Override public void cancel() {

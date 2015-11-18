@@ -27,10 +27,28 @@ import java.io.IOException;
  * #enqueue}. In either case the call can be canceled at any time with {@link #cancel}. A call that
  * is busy writing its request or reading its response may receive a {@link IOException}; this is
  * working as designed.
+ *
+ * @modify by FanLei
+ * add dynamicBaseUrl and cachePloy param
  */
 public interface Call<T> extends Cloneable {
   Response<T> execute() throws IOException;
+
+  Response<T> execute(String dynamicBaseUrl) throws IOException;
+
+  Response<T> execute(RequestFactory.CachePloy cachePloy) throws IOException;
+
+  Response<T> execute(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) throws IOException;
+
   void enqueue(Callback<T> callback);
+
+  void enqueue(Callback<T> callback, String dynamicBaseUrl);
+
+  void enqueue(Callback<T> callback, RequestFactory.CachePloy cachePloy);
+
+  void enqueue(Callback<T> callback, String dynamicBaseUrl, RequestFactory.CachePloy cachePloy);
+
   void cancel();
+
   Call<T> clone();
 }
