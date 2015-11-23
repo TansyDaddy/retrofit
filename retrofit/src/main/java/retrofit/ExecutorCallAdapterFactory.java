@@ -15,6 +15,8 @@
  */
 package retrofit;
 
+import com.squareup.okhttp.CacheControl;
+
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -69,8 +71,18 @@ final class ExecutorCallAdapterFactory implements CallAdapter.Factory {
     }
 
     @Override
+    public void enqueue(Callback<T> callback, CacheControl cacheControl) {
+      delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), cacheControl);
+    }
+
+    @Override
     public void enqueue(Callback<T> callback, String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) {
       delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), dynamicBaseUrl, cachePloy);
+    }
+
+    @Override
+    public void enqueue(Callback<T> callback, String dynamicBaseUrl, CacheControl cacheControl) {
+      delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), dynamicBaseUrl, cacheControl);
     }
 
     @Override
@@ -89,8 +101,18 @@ final class ExecutorCallAdapterFactory implements CallAdapter.Factory {
     }
 
     @Override
+    public Response<T> execute(CacheControl cacheControl) throws IOException {
+      return delegate.execute(cacheControl);
+    }
+
+    @Override
     public Response<T> execute(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) throws IOException {
       return delegate.execute(dynamicBaseUrl, cachePloy);
+    }
+
+    @Override
+    public Response<T> execute(String dynamicBaseUrl, CacheControl cacheControl) throws IOException {
+      return delegate.execute(dynamicBaseUrl, cacheControl);
     }
 
     @Override public void cancel() {

@@ -15,10 +15,14 @@
  */
 package retrofit;
 
+import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.ResponseBody;
+
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import okio.Buffer;
 import okio.BufferedSource;
 import okio.ForwardingSource;
@@ -37,82 +41,47 @@ final class OkHttpCall<T> implements Call<T> {
   private volatile boolean canceled;
 
   OkHttpCall(Retrofit retrofit, RequestFactory requestFactory,
-      Converter<ResponseBody, T> responseConverter, Object[] args) {
+             Converter<ResponseBody, T> responseConverter, Object[] args) {
     this.retrofit = retrofit;
     this.requestFactory = requestFactory;
     this.responseConverter = responseConverter;
     this.args = args;
   }
 
-  @SuppressWarnings("CloneDoesntCallSuperClone") // We are a final type & this saves clearing state.
-  @Override public OkHttpCall<T> clone() {
+  @SuppressWarnings("CloneDoesntCallSuperClone")
+  // We are a final type & this saves clearing state.
+  @Override
+  public OkHttpCall<T> clone() {
     return new OkHttpCall<>(retrofit, requestFactory, responseConverter, args);
   }
 
-  @Override public void enqueue(final Callback<T> callback) {
-    synchronized (this) {
-      if (executed) throw new IllegalStateException("Already executed");
-      executed = true;
-    }
-
-    com.squareup.okhttp.Call rawCall;
-    try {
-      rawCall = createRawCall();
-    } catch (Throwable t) {
-      callback.onFailure(t);
-      return;
-    }
-    if (canceled) {
-      rawCall.cancel();
-    }
-    this.rawCall = rawCall;
-
-    rawCall.enqueue(new com.squareup.okhttp.Callback() {
-      private void callFailure(Throwable e) {
-        try {
-          callback.onFailure(e);
-        } catch (Throwable t) {
-          t.printStackTrace();
-        }
-      }
-
-      private void callSuccess(Response<T> response) {
-        try {
-          callback.onResponse(response, retrofit);
-        } catch (Throwable t) {
-          t.printStackTrace();
-        }
-      }
-
-      @Override public void onFailure(Request request, IOException e) {
-        callFailure(e);
-      }
-
-      @Override public void onResponse(com.squareup.okhttp.Response rawResponse) {
-        Response<T> response;
-        try {
-          response = parseResponse(rawResponse);
-        } catch (Throwable e) {
-          callFailure(e);
-          return;
-        }
-        callSuccess(response);
-      }
-    });
+  @Override
+  public void enqueue(final Callback<T> callback) {
+    enqueue(callback, null, RequestFactory.CachePloy.FORCE_NETWORK);
   }
 
   @Override
   public void enqueue(Callback<T> callback, String dynamicBaseUrl) {
-    enqueue(callback,dynamicBaseUrl, RequestFactory.CachePloy.FORCE_NETWORK);
+    enqueue(callback, dynamicBaseUrl, RequestFactory.CachePloy.FORCE_NETWORK);
   }
 
   @Override
   public void enqueue(Callback<T> callback, RequestFactory.CachePloy cachePloy) {
-    enqueue(callback,null, cachePloy);
+    enqueue(callback, null, cachePloy);
+  }
+
+  @Override
+  public void enqueue(Callback<T> callback, CacheControl controlPloy) {
+    enqueue(callback, null, controlPloy);
   }
 
   @Override
   public void enqueue(final Callback<T> callBack, String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) {
+    enqueue(callBack, dynamicBaseUrl, convertCache(cachePloy));
+  }
+
+  @Override
+  public void enqueue(final Callback<T> cBack, String dynamicBaseUrl, CacheControl cacheControl) {
     synchronized (this) {
       if (executed) throw new IllegalStateException("Already executed");
       executed = true;
@@ -120,9 +89,9 @@ final class OkHttpCall<T> implements Call<T> {
 
     com.squareup.okhttp.Call rawCall;
     try {
-      rawCall = createRawCall(dynamicBaseUrl,cachePloy);
+      rawCall = createRawCall(dynamicBaseUrl, cacheControl);
     } catch (Throwable t) {
-      callBack.onFailure(t);
+      cBack.onFailure(t);
       return;
     }
     if (canceled) {
@@ -133,7 +102,7 @@ final class OkHttpCall<T> implements Call<T> {
     rawCall.enqueue(new com.squareup.okhttp.Callback() {
       private void callFailure(Throwable e) {
         try {
-          callBack.onFailure(e);
+          cBack.onFailure(e);
         } catch (Throwable t) {
           t.printStackTrace();
         }
@@ -141,7 +110,7 @@ final class OkHttpCall<T> implements Call<T> {
 
       private void callSuccess(Response<T> response) {
         try {
-          callBack.onResponse(response, retrofit);
+          cBack.onResponse(response, retrofit);
         } catch (Throwable t) {
           t.printStackTrace();
         }
@@ -167,18 +136,7 @@ final class OkHttpCall<T> implements Call<T> {
   }
 
   public Response<T> execute() throws IOException {
-    synchronized (this) {
-      if (executed) throw new IllegalStateException("Already executed");
-      executed = true;
-    }
-
-    com.squareup.okhttp.Call rawCall = createRawCall();
-    if (canceled) {
-      rawCall.cancel();
-    }
-    this.rawCall = rawCall;
-
-    return parseResponse(rawCall.execute());
+    return execute(null, RequestFactory.CachePloy.FORCE_NETWORK);
   }
 
   @Override
@@ -191,15 +149,25 @@ final class OkHttpCall<T> implements Call<T> {
     return execute(null, cachePloy);
   }
 
+  @Override
+  public Response<T> execute(CacheControl cacheControl) throws IOException {
+    return execute(null, cacheControl);
+  }
+
 
   @Override
   public Response<T> execute(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) throws IOException {
+    return execute(dynamicBaseUrl, convertCache(cachePloy));
+  }
+
+  @Override
+  public Response<T> execute(String dynamicBaseUrl, CacheControl cacheControl) throws IOException {
     synchronized (this) {
       if (executed) throw new IllegalStateException("Already executed");
       executed = true;
     }
 
-    com.squareup.okhttp.Call rawCall = createRawCall(dynamicBaseUrl,cachePloy);
+    com.squareup.okhttp.Call rawCall = createRawCall(dynamicBaseUrl, cacheControl);
     if (canceled) {
       rawCall.cancel();
     }
@@ -208,12 +176,8 @@ final class OkHttpCall<T> implements Call<T> {
     return parseResponse(rawCall.execute());
   }
 
-  private com.squareup.okhttp.Call createRawCall() {
-    return retrofit.client().newCall(requestFactory.create(args));
-  }
-
-  private com.squareup.okhttp.Call createRawCall(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) {
-    return retrofit.client().newCall(requestFactory.create(dynamicBaseUrl, cachePloy, args));
+  private com.squareup.okhttp.Call createRawCall(String dynamicBaseUrl, CacheControl controlPloy) {
+    return retrofit.client().newCall(requestFactory.create(dynamicBaseUrl, controlPloy, args));
   }
 
   private Response<T> parseResponse(com.squareup.okhttp.Response rawResponse) throws IOException {
@@ -221,8 +185,8 @@ final class OkHttpCall<T> implements Call<T> {
 
     // Remove the body's source (the only stateful object) so we can pass the response along.
     rawResponse = rawResponse.newBuilder()
-        .body(new NoContentResponseBody(rawBody.contentType(), rawBody.contentLength()))
-        .build();
+            .body(new NoContentResponseBody(rawBody.contentType(), rawBody.contentLength()))
+            .build();
 
     int code = rawResponse.code();
     if (code < 200 || code >= 300) {
@@ -268,15 +232,18 @@ final class OkHttpCall<T> implements Call<T> {
       this.contentLength = contentLength;
     }
 
-    @Override public MediaType contentType() {
+    @Override
+    public MediaType contentType() {
       return contentType;
     }
 
-    @Override public long contentLength() throws IOException {
+    @Override
+    public long contentLength() throws IOException {
       return contentLength;
     }
 
-    @Override public BufferedSource source() throws IOException {
+    @Override
+    public BufferedSource source() throws IOException {
       throw new IllegalStateException("Cannot read raw response body of a converted body.");
     }
   }
@@ -289,11 +256,13 @@ final class OkHttpCall<T> implements Call<T> {
       this.delegate = delegate;
     }
 
-    @Override public MediaType contentType() {
+    @Override
+    public MediaType contentType() {
       return delegate.contentType();
     }
 
-    @Override public long contentLength() throws IOException {
+    @Override
+    public long contentLength() throws IOException {
       try {
         return delegate.contentLength();
       } catch (IOException e) {
@@ -302,7 +271,8 @@ final class OkHttpCall<T> implements Call<T> {
       }
     }
 
-    @Override public BufferedSource source() throws IOException {
+    @Override
+    public BufferedSource source() throws IOException {
       BufferedSource delegateSource;
       try {
         delegateSource = delegate.source();
@@ -311,7 +281,8 @@ final class OkHttpCall<T> implements Call<T> {
         throw e;
       }
       return Okio.buffer(new ForwardingSource(delegateSource) {
-        @Override public long read(Buffer sink, long byteCount) throws IOException {
+        @Override
+        public long read(Buffer sink, long byteCount) throws IOException {
           try {
             return super.read(sink, byteCount);
           } catch (IOException e) {
@@ -322,7 +293,8 @@ final class OkHttpCall<T> implements Call<T> {
       });
     }
 
-    @Override public void close() throws IOException {
+    @Override
+    public void close() throws IOException {
       delegate.close();
     }
 
@@ -331,6 +303,29 @@ final class OkHttpCall<T> implements Call<T> {
         throw thrownException;
       }
     }
+  }
+
+  private CacheControl convertCache(RequestFactory.CachePloy cachePloy) {
+    CacheControl cacheControl = CacheControl.FORCE_NETWORK;
+    switch (cachePloy) {
+      case FORCE_CACHE:
+        cacheControl = CacheControl.FORCE_CACHE;
+        break;
+      case FORCE_NETWORK:
+        cacheControl = CacheControl.FORCE_NETWORK;
+        break;
+      case MAX_AGE_0:
+        cacheControl = new CacheControl.Builder()
+                .maxAge(0, TimeUnit.SECONDS)
+                .build();
+        break;
+      case MAX_STALE:
+        cacheControl = new CacheControl.Builder()
+                .maxStale(60, TimeUnit.MINUTES)
+                .build();
+        break;
+    }
+    return cacheControl;
   }
 
 }

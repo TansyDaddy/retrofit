@@ -15,6 +15,8 @@
  */
 package retrofit;
 
+import com.squareup.okhttp.CacheControl;
+
 import java.io.IOException;
 
 /**
@@ -38,7 +40,11 @@ public interface Call<T> extends Cloneable {
 
   Response<T> execute(RequestFactory.CachePloy cachePloy) throws IOException;
 
+  Response<T> execute(CacheControl controlPloy) throws IOException;
+
   Response<T> execute(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) throws IOException;
+
+  Response<T> execute(String dynamicBaseUrl, CacheControl controlPloy) throws IOException;
 
   void enqueue(Callback<T> callback);
 
@@ -46,7 +52,11 @@ public interface Call<T> extends Cloneable {
 
   void enqueue(Callback<T> callback, RequestFactory.CachePloy cachePloy);
 
+  void enqueue(Callback<T> callback, CacheControl controlPloy);
+
   void enqueue(Callback<T> callback, String dynamicBaseUrl, RequestFactory.CachePloy cachePloy);
+
+  void enqueue(Callback<T> callback, String dynamicBaseUrl, CacheControl controlPloy);
 
   void cancel();
 
