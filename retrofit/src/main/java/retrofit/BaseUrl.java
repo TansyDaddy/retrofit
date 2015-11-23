@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) &amp;#36;today.year, House365. All rights reserved.
+ */
+
 package retrofit;
 
 import com.squareup.okhttp.HttpUrl;

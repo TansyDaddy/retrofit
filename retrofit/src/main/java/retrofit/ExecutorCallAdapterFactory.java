@@ -1,19 +1,9 @@
 /*
- * Copyright (C) 2015 Square, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) &amp;#36;today.year, House365. All rights reserved.
  */
 package retrofit;
+
+import com.squareup.okhttp.CacheControl;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -69,8 +59,18 @@ final class ExecutorCallAdapterFactory implements CallAdapter.Factory {
     }
 
     @Override
+    public void enqueue(Callback<T> callback, CacheControl cacheControl) {
+      delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), cacheControl);
+    }
+
+    @Override
     public void enqueue(Callback<T> callback, String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) {
       delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), dynamicBaseUrl, cachePloy);
+    }
+
+    @Override
+    public void enqueue(Callback<T> callback, String dynamicBaseUrl, CacheControl cacheControl) {
+      delegate.enqueue(new ExecutorCallback<>(callbackExecutor, callback), dynamicBaseUrl, cacheControl);
     }
 
     @Override
@@ -89,8 +89,18 @@ final class ExecutorCallAdapterFactory implements CallAdapter.Factory {
     }
 
     @Override
+    public Response<T> execute(CacheControl cacheControl) throws IOException {
+      return delegate.execute(cacheControl);
+    }
+
+    @Override
     public Response<T> execute(String dynamicBaseUrl, RequestFactory.CachePloy cachePloy) throws IOException {
       return delegate.execute(dynamicBaseUrl, cachePloy);
+    }
+
+    @Override
+    public Response<T> execute(String dynamicBaseUrl, CacheControl cacheControl) throws IOException {
+      return delegate.execute(dynamicBaseUrl, cacheControl);
     }
 
     @Override public void cancel() {

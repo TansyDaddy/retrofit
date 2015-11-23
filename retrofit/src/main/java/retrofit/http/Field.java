@@ -1,17 +1,5 @@
 /*
- * Copyright (C) 2013 Square, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) &amp;#36;today.year, House365. All rights reserved.
  */
 package retrofit.http;
 
@@ -24,11 +12,11 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * Named pair for a form-encoded request.
- * <p>
+ * <p/>
  * Values are converted to strings using {@link String#valueOf(Object)} and then form URL encoded.
  * {@code null} values are ignored. Passing a {@link java.util.List List} or array will result in a
  * field pair for each non-{@code null} item.
- * <p>
+ * <p/>
  * Simple Example:
  * <pre>
  * &#64;FormUrlEncoded
@@ -38,7 +26,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * </pre>
  * Calling with {@code foo.example("Bob Smith", "President")} yields a request body of
  * {@code name=Bob+Smith&occupation=President}.
- * <p>
+ * <p/>
  * Array Example:
  * <pre>
  * &#64;FormUrlEncoded
@@ -55,8 +43,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(PARAMETER)
 @Retention(RUNTIME)
 public @interface Field {
-  String value();
+    String value();
 
-  /** Specifies whether the {@linkplain #value() name} and value are already URL encoded. */
-  boolean encoded() default false;
+    /**
+     * Specifies whether the {@linkplain #value() name} and value are already URL encoded.
+     */
+    boolean encoded() default false;
 }

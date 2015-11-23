@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import retrofit.Call;
 import retrofit.Converter;
-import retrofit.GsonConverterFactory;
 import retrofit.Response;
 import retrofit.Retrofit;
 import retrofit.http.GET;
