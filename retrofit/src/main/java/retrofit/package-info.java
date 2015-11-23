@@ -1,6 +1,4 @@
-/*
- * Copyright (c) &amp;#36;today.year, House365. All rights reserved.
- */
+// Copyright 2014 Square, Inc.
 
 /**
  * Retrofit turns your REST API into a Java interface.

@@ -18,6 +18,7 @@ package com.example.retrofit;
 import java.io.IOException;
 import java.util.List;
 import retrofit.Call;
+import retrofit.GsonConverterFactory;
 import retrofit.Retrofit;
 import retrofit.http.GET;
 import retrofit.http.Path;
